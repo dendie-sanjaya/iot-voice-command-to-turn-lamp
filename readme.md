@@ -242,16 +242,14 @@ Content-Type: application/json
 ![ss](ss/4-publish-to-mqtt.png)
 
 
-
 #### **Option 3: Frontend Application**
 
 * Connect frontend application  via browser laptop / handphoe: `https://xx.xx.xx.xx:`
 * Send Command via voice 
 
-![screen-shoot](ss/demo.jpg)
+![screen-shoot](ss/demo.png)
 
-![screen-shoot](ss/lamp.jpg)
-
+![screen-shoot](ss/lamp.png)
 
 ![See & Download Video Demo](video/video.mp4)
 
@@ -265,5 +263,3 @@ Connected to MQTT Broker
 Message received: {"status":"on"}
 Turning Lamp ON
 ```
-
-
