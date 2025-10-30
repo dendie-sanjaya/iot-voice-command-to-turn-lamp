@@ -64,9 +64,9 @@ The system uses a **publish/subscribe (Pub/Sub)** model through an **MQTT Broker
 4. The ESP8266 Microcontroller (**Subscriber**) is connected via WiFi and the MQTT Protocol.  
 5. The ESP8266 executes the received command to control the lamp (Relay).
 
-[screen-shoot](design/architecture.png)
+![screen-shoot](design/architecture.png)
 
-[screen-shoot](design/flow.png)
+![screen-shoot](design/flow.png)
 
 ### Project Folder Structure (Updated)
 
@@ -108,7 +108,7 @@ The system uses a **publish/subscribe (Pub/Sub)** model through an **MQTT Broker
 | 3V3 / 5V | VCC / USB Port | Powers the Relay/LED Module |
 
 
-[screen-shoot](design/pin-diagram.png)
+![screen-shoot](design/pin-diagram.png)
 
 ## 4. Software Requirements
 
