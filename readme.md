@@ -48,8 +48,8 @@ This feature lets the user send **ON** or **OFF** commands to the lamp simply by
 | **Voice Processing** | The app translates the speech (e.g., “turn off the lamp”) into a text command: `ON` or `OFF`. |
 | **Communication** | The detected ON/OFF command is then sent to the NodeJS Server using a REST API (JSON). |
 
-<p align="center">
-  <img src="ss/apps.jpg" alt="screen-shoot" width="200">
+<p align="left">
+  <img src="ss/apps.jpg" alt="screen-shoot" width="300">
 </p>
 
 ## 2. System Architecture
@@ -202,7 +202,9 @@ Voice Recognition: A Smart Assistant device or app recognizes the speect to text
 MQTT Bridge: A service translates the voice command into a text message and Publishes it to a dedicated MQTT command topic (e.g., pubs/lamp/).
 ESP8266 Action: The ESP8266, which Subscribes to the command topic, processes the request (e.g., reads the command on / off).
 
-![screen-shoot](ss/apps.jpg)  
+<p align="left">
+  <img src="ss/apps.jpg" alt="screen-shoot" width="300">
+</p>
 
 ## 8. System Demonstration and Testing
 
