@@ -48,7 +48,9 @@ This feature lets the user send **ON** or **OFF** commands to the lamp simply by
 | **Voice Processing** | The app translates the speech (e.g., “turn off the lamp”) into a text command: `ON` or `OFF`. |
 | **Communication** | The detected ON/OFF command is then sent to the NodeJS Server using a REST API (JSON). |
 
-![screen-shoot](ss/apps.jpg)
+<p align="center">
+  <img src="ss/apps.jpg" alt="screen-shoot" width="200">
+</p>
 
 ## 2. System Architecture
 
