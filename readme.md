@@ -105,6 +105,7 @@ The system uses a **publish/subscribe (Pub/Sub)** model through an **MQTT Broker
 | GND | GND | Ground |
 | 3V3 / 5V | VCC / USB Port | Powers the Relay/LED Module |
 
+
 [screen-shoot](design/pin-diagram.png)
 
 ## 4. Software Requirements
