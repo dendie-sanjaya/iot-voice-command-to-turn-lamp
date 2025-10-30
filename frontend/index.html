@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Command IoT Lamp Controller</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f9;
+        }
+        /* Custom pulsing effect for the button */
+        @keyframes pulse-mic {
+            0% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 69, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); }
+        }
+        .is-listening {
+            animation: pulse-mic 1.5s infinite;
+        }
+    </style>
+    <!-- REMOVED: Paho MQTT Client Library -->
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 md:p-8">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center justify-center">
+                <svg class="w-8 h-8 mr-2 text-indigo-600" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13c-1.66 0-3-1.34-3-3V7c0-1.66 1.34-3 3-3s3 1.34 3 3v5c0 1.66-1.34 3-3 3zm5-5h-1v-2h2v2zm-6 7c3.31 0 6.01-2.69 6.01-6H19c0 4.42-3.59 8-8 8s-8-3.58-8-8h2.99c0 3.31 2.69 6 6 6z"/>
+                </svg>
+                Voice IoT Lamp Control
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">Gunakan suara untuk kirim perintah ON/OFF via Backend API.</p>
+        </header>
+
+        <!-- REMOVED: MQTT Connection Status Card -->
+        <div id="api-info-card" class="mb-6 p-4 rounded-lg text-sm transition-all duration-300 bg-gray-100 border border-gray-200">
+            <p class="font-semibold text-gray-700 flex items-center">
+                API Endpoint: 
+            </p>
+            <p id="api-url-display" class="text-xs text-gray-500 mt-1 truncate">Memuat...</p>
+        </div>
+
+
+        <!-- Microphone Button -->
+        <div class="flex justify-center mb-6">
+            <button id="mic-button" class="w-40 h-40 bg-indigo-600 text-white rounded-full flex flex-col items-center justify-center shadow-lg hover:bg-indigo-700 transition-transform duration-150 active:scale-95 disabled:bg-gray-400">
+                <svg id="mic-icon" class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3zm5.3-2c0 3.97-3.32 7.2-7.3 7.2s-7.3-3.23-7.3-7.2H3c0 4.84 3.65 8.89 8.4 9.66V22h2.2v-2.34c4.75-.77 8.4-4.82 8.4-9.66h-2z"/>
+                </svg>
+                <span id="mic-label" class="mt-2 font-semibold text-sm">TAP UNTUK BICARA</span>
+            </button>
+        </div>
+
+        <!-- Output and Message Logs -->
+        <div class="space-y-4">
+            <div class="bg-indigo-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-indigo-700 mb-1">Anda Mengatakan:</h3>
+                <p id="transcript-output" class="text-gray-800 italic min-h-[1.5rem]">Menunggu perintah...</p>
+            </div>
+            
+            <div class="bg-yellow-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-yellow-800 mb-1">Perintah Dideteksi:</h3>
+                <p id="command-output" class="text-gray-800 font-mono text-lg min-h-[1.5rem]">...</p>
+            </div>
+
+            <div class="bg-green-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-green-700 mb-1">Status Pengiriman API:</h3>
+                <p id="api-payload-output" class="text-gray-800 font-mono text-lg min-h-[1.5rem]">...</p>
+            </div>  
+            
+        </div>
+
+        <!-- Error/Info Message Box -->
+        <div id="message-box" class="mt-6 p-4 rounded-lg hidden" role="alert">
+            <p id="message-text" class="text-sm"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        // New API endpoint provided by the user
+        const API_ENDPOINT = "https://192.168.100.35:4000/api/publish/lamp";
+        
+        // --- 2. HTML ELEMENT REFERENCES ---
+        const micButton = document.getElementById('mic-button');
+        const micLabel = document.getElementById('mic-label');
+        // const connectionDot = document.getElementById('connection-dot'); // Removed
+        // const statusText = document.getElementById('status-text'); // Removed
+        const apiUrlDisplay = document.getElementById('api-url-display'); // FIX: Diubah dari api-url-display
+        const transcriptOutput = document.getElementById('transcript-output');
+        const commandOutput = document.getElementById('command-output');
+        const apiPayloadOutput = document.getElementById('api-payload-output'); // Renamed from mqttPayloadOutput
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        // --- 3. SPEECH RECOGNITION SETUP ---
+        // Check for Web Speech API support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; // Stop after user finishes speaking
+            recognition.interimResults = false; // Only return final results
+            recognition.lang = 'id-ID'; // Prioritize Indonesian, but can detect English
+            micButton.disabled = false; // Enable button if VTT is supported
+        } else {
+            showMessage('Error: Browser Anda tidak mendukung Web Speech Recognition API. Coba Chrome atau Edge.', 'error');
+            micButton.disabled = true;
+        }
+
+        // --- 4. UTILITY FUNCTIONS ---
+
+        function showMessage(text, type = 'info') {
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-yellow-100', 'text-yellow-700');
+            
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-700');
+            } else { // info/default
+                messageBox.classList.add('bg-yellow-100', 'text-yellow-700');
+            }
+        }
+
+        // --- 5. HTTP PUBLISHING LOGIC ---
+
+        async function publishCommand(command) {
+            // The API expects a JSON payload, e.g., { "action": "ON" }
+            const payload = { status: command };
+            
+            apiPayloadOutput.textContent = 'Mengirim JSON...';
+            
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                // Check if the request was successful (status 200-299)
+                if (response.ok) {
+                    const result = await response.json(); // Assuming the API returns JSON
+                    
+                    apiPayloadOutput.textContent = `Perintah: "${command}" | Status: Berhasil`;
+                    console.log("API Response:", result);
+                    
+                    showMessage(`Perintah "${command}" berhasil dikirim ke API.`, 'success');
+                } else {
+                    // Handle HTTP error responses
+                    apiPayloadOutput.textContent = `Perintah: "${command}" | Status: Gagal (${response.status})`;
+                    showMessage(`Gagal mengirim ke API. Status: ${response.status}. Pastikan Backend berjalan di ${API_ENDPOINT}`, 'error');
+                }
+            } catch (e) {
+                // Handle network errors (CORS, server not reachable, etc.)
+                apiPayloadOutput.textContent = `Perintah: "${command}" | Status: Error Jaringan`;
+                console.error("HTTP Fetch Error:", e);
+                showMessage(`Gagal terhubung ke API: ${e.message}. Periksa alamat ${API_ENDPOINT}.`, 'error');
+            }
+        }
+
+
+        // --- 6. SPEECH LOGIC ---
+
+        function handleSpeechResult(transcript) {
+            transcriptOutput.textContent = transcript;
+            commandOutput.textContent = 'Menganalisis...';
+            apiPayloadOutput.textContent = '...';
+
+            // Normalize transcript to lowercase for easier matching
+            const lowerTranscript = transcript.toLowerCase();
+
+            // Keywords to look for (Bahasa Indonesia & English)
+            const lampKeywords = ['lampu', 'lamp'];
+            const onKeywords = ['hidup', 'on', 'nyala', 'aktif'];
+            const offKeywords = ['mati', 'off', 'padam'];
+
+            let command = null;
+
+            const containsLamp = lampKeywords.some(key => lowerTranscript.includes(key));
+            const containsOn = onKeywords.some(key => lowerTranscript.includes(key));
+            const containsOff = offKeywords.some(key => lowerTranscript.includes(key));
+
+            // Logic to determine command
+            if (containsLamp) {
+                if (containsOn && !containsOff) {
+                    command = 'ON';
+                } else if (containsOff && !containsOn) {
+                    command = 'OFF';
+                } else if (containsOn && containsOff) {
+                    // Ambiguous command
+                    command = 'AMBIGUOUS';
+                }
+            }
+            
+            // Execute or report result
+            if (command === 'ON' || command === 'OFF') {
+                commandOutput.textContent = command;
+                publishCommand(command); // Use the new HTTP publish function
+            } else if (command === 'AMBIGUOUS') {
+                commandOutput.textContent = 'TIDAK JELAS';
+                showMessage('Perintah tidak jelas (mengandung ON dan OFF). Mohon ulangi.', 'error');
+            } 
+            else {
+                commandOutput.textContent = 'TIDAK DITEMUKAN';
+                showMessage('Perintah harus mengandung kata kunci lampu/lamp dan ON/OFF/hidup/mati.', 'info');
+            }
+        }
+
+        // --- 7. EVENT HANDLERS ---
+        
+        if (recognition) {
+            // Event when speech starts being detected
+            recognition.onstart = () => {
+                isListening = true;
+                micButton.classList.add('is-listening', 'bg-red-600');
+                micButton.classList.remove('bg-indigo-600');
+                micLabel.textContent = 'MENDENGARKAN...';
+                transcriptOutput.textContent = 'Bicara sekarang...';
+                commandOutput.textContent = '...';
+                apiPayloadOutput.textContent = '...';
+                messageBox.classList.add('hidden');
+            };
+
+            // Event when speech stops or is stopped manually
+            recognition.onend = () => {
+                isListening = false;
+                micButton.classList.remove('is-listening', 'bg-red-600');
+                micButton.classList.add('bg-indigo-600');
+                micLabel.textContent = 'TAP UNTUK BICARA';
+            };
+
+            // Event when a result is received
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                handleSpeechResult(speechResult);
+            };
+
+            // Event on error
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                let errorMessage = `Error Voice-to-Text: ${event.error}.`;
+                if (event.error === 'not-allowed') {
+                    errorMessage += ' Pastikan Anda mengizinkan akses mikrofon.';
+                } else if (event.error === 'no-speech') {
+                    errorMessage = 'Tidak ada suara terdeteksi. Coba lagi.';
+                }
+                showMessage(errorMessage, 'error');
+                // Ensure listening state is reset on error
+                micButton.classList.remove('is-listening', 'bg-red-600');
+                micButton.classList.add('bg-indigo-600');
+                micLabel.textContent = 'TAP UNTUK BICARA';
+            };
+        }
+
+        micButton.addEventListener('click', () => {
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    // Catch error if recognition is already running (rare)
+                    console.error("Recognition start failed:", e);
+                }
+            }
+        });
+
+        // --- 8. INITIALIZATION ---
+        window.onload = function() {
+            // Display the configured API URL
+            apiUrlDisplay.textContent = API_ENDPOINT;
+            // The mic button is enabled automatically if SpeechRecognition is supported
+        };
+
+    </script>
+</body>
+</html>
