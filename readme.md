@@ -42,8 +42,8 @@ Rreal-time system that receives ON/OFF commands from an external app (like our *
 
 This feature lets the user send **ON** or **OFF** commands to the lamp simply by talking into the web application on their smartphone's browser.
 
-|| Component | Description |
-|------------|-------------|
+| Component | Description |
+|:----------|:------------|
 | **Voice Command App** | The web app (frontend) that captures the user's voice input. |
 | **Voice Processing** | The app translates the speech (e.g., “turn off the lamp”) into a text command: `ON` or `OFF`. |
 | **Communication** | The detected ON/OFF command is then sent to the NodeJS Server using a REST API (JSON). |
